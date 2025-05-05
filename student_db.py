@@ -27,19 +27,36 @@ def view_students():
 
 def update_student(student_id, name, age, grade):
     with connect_db() as conn:
-        conn.execute('UPDATE students SET name = ?, age = ?, grade = ? WHERE id = ?', (name, age, grade, student_id))
-        print("Student updated.")
+        cursor = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,))
+        student = cursor.fetchone()
+        if student:
+            conn.execute(
+                'UPDATE students SET name = ?, age = ?, grade = ? WHERE id = ?',
+                (name, age, grade, student_id)
+            )
+            print(f"Student with ID {student_id} updated.")
+        else:
+            print(f"No student found with ID {student_id}.")
 
 def delete_student(student_id):
     with connect_db() as conn:
-        conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
-        print(" Student deleted.")
+        cursor = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,))
+        student = cursor.fetchone()
+        if student:
+            conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
+            print(f"Student with ID {student_id} deleted.")
+        else:
+            print(f"No student found with ID {student_id}.")
 
 def search_student(name):
     with connect_db() as conn:
         cursor = conn.execute('SELECT * FROM students WHERE name LIKE ?', ('%' + name + '%',))
-        for row in cursor.fetchall():
-            print(row)
+        results = cursor.fetchall()
+        if results:
+            for row in results:
+                print(row)
+        else:
+            print(f"No student found with name matching '{name}'.")
 
 def menu():
     create_table()
@@ -70,12 +87,20 @@ def menu():
         elif choice == '3':
             try:
                 student_id = int(input("Student ID to update: "))
-                name = input("New name: ")
-                age = int(input("New age: "))
-                grade = input("New grade: ")
-                update_student(student_id, name, age, grade)
+                with connect_db() as conn:
+                    cursor = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,))
+                    student = cursor.fetchone()
+                    if not student:
+                        print(f"No student found with ID {student_id}.")
+                        continue
+                    print(f"Current: ID={student[0]}, Name={student[1]}, Age={student[2]}, Grade={student[3]}")
+                    name = input("New name: ")
+                    age = int(input("New age: "))
+                    grade = input("New grade: ")
+                    update_student(student_id, name, age, grade)
             except ValueError:
                 print("Invalid input.")
+
         elif choice == '4':
             try:
                 student_id = int(input("Student ID to delete: "))
